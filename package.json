@@ -1,0 +1,36 @@
+{
+  "name": "scode-platform",
+  "version": "1.0.0",
+  "description": "Dynamic Multi-Business Website Platform with React Frontend, Node.js Backend, Admin Panel, and Single SQLite Database",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node src/db/seed.js",
+    "build": "cd client && npm run build",
+    "client:dev": "cd client && npm run dev",
+    "server:dev": "node --watch server.js"
+  },
+  "keywords": [
+    "react",
+    "nodejs",
+    "express",
+    "sqlite",
+    "scode",
+    "multi-tenant",
+    "dynamic-website",
+    "admin-panel",
+    "cms"
+  ],
+  "author": "SCode Platform",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.7"
+  }
+}
