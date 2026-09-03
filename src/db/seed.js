@@ -432,21 +432,76 @@ const seedData = async () => {
       }
     }
 
-    // 4. Seed sample Leads
-    const existingLeads = await dbAll('SELECT id FROM leads');
-    if (existingLeads.length === 0) {
+    // 4. Seed sample Users for Chatbot Search & User Management
+    await dbRun('DELETE FROM users');
+
+      // Fetch business IDs
       const cws = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['clean-water-solutions']);
       const glory = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['glory-computers']);
+      const ssIns = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['ss-insurance']);
+      const shriram = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['shriram-security']);
+      const kloudbox = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['kloudbox']);
+      const asEnt = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['as-enterprises']);
+      const shivShambho = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['shiv-shambho-enterprises']);
+      const omEnt = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['om-enterprises']);
+      const chintamani = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['chintamani-industries']);
+      const vitech = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['vitech-systems']);
+      const madhuban = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['madhuban-developers']);
 
-      await dbRun(`
-        INSERT INTO leads (business_id, name, email, phone, message, service_requested, status)
-        VALUES 
-          (?, 'Sunil Shinde', 'sunil.shinde@gmail.com', '+919822554433', 'Need quote for 2000 LPH RO water plant for our food processing unit.', 'Industrial Water Treatment', 'new'),
-          (?, 'Mahesh Jagtap', 'mahesh.jagtap@outlook.com', '+919921445566', 'My Dell XPS 15 laptop has screen flickering and battery drain issue.', 'Chip-Level Laptop Repair', 'contacted'),
-          (NULL, 'Rohan Verma', 'rohan.v@gmail.com', '+919876112233', 'I want to build a profile website for my new Dental Clinic on SCode.', 'Website Setup', 'new')
-      `, [cws ? cws.id : null, glory ? glory.id : null]);
-      console.log('Seeded sample inquiries / leads');
-    }
+      // Update businesses with city, state, pincode, GST
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411039", gst_number = "27AAACC1234A1Z5" WHERE slug = "clean-water-solutions"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411028", gst_number = "27AAACG5678B1Z2" WHERE slug = "glory-computers"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411014", gst_number = "27AAACS9012C1Z8" WHERE slug = "ss-insurance"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411026", gst_number = "27AAACS3456D1Z1" WHERE slug = "shriram-security"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411014", gst_number = "27AAACK7890E1Z4" WHERE slug = "kloudbox"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411048", gst_number = "27AAACA1234F1Z7" WHERE slug = "as-enterprises"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411041", gst_number = "27AAACS4567G1Z9" WHERE slug = "shiv-shambho-enterprises"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411028", gst_number = "27AAACO8901H1Z3" WHERE slug = "om-enterprises"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "410501", gst_number = "27AAACC2345J1Z6" WHERE slug = "chintamani-industries"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411045", gst_number = "27AAACV6789K1Z0" WHERE slug = "vitech-systems"');
+      await dbRun('UPDATE businesses SET city = "Pune", state = "Maharashtra", pincode = "411005", gst_number = "27AAACM0123L1Z4" WHERE slug = "madhuban-developers"');
+
+      const sampleUsers = [
+        { name: 'Rahul Kumar Patil', email: 'rahul@gmail.com', phone: '9876543210', city: 'Pune', state: 'Maharashtra', pincode: '411045', address: 'Baner Road, Pune 411045', gst_number: '27AAACP1234A1Z5', business_id: cws ? cws.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Rahul Sharma', email: 'rahul123@gmail.com', phone: '9822114455', city: 'Nashik', state: 'Maharashtra', pincode: '422001', address: 'College Road, Nashik 422001', gst_number: '27AABCS5678B1Z2', business_id: glory ? glory.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Rahul More', email: 'rahulmore@gmail.com', phone: '9890112244', city: 'Aurangabad', state: 'Maharashtra', pincode: '431001', address: 'CIDCO, Aurangabad 431001', gst_number: '27AABCM9012C1Z8', business_id: null, role: 'client', status: 'active' },
+        { name: 'Kedarnath Shinde', email: 'kedarnath@scode.in', phone: '9765975757', city: 'Pune', state: 'Maharashtra', pincode: '411028', address: 'Hadapsar, Pune 411028', gst_number: '27AABCK3456D1Z1', business_id: kloudbox ? kloudbox.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Priya Sharma', email: 'priya.sharma@example.com', phone: '9876543211', city: 'Pune', state: 'Maharashtra', pincode: '411014', address: 'Viman Nagar, Pune 411014', gst_number: '27AABCP7890E1Z4', business_id: shivShambho ? shivShambho.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Anand Kulkarni', email: 'anand.k@example.com', phone: '9876543212', city: 'Bangalore', state: 'Karnataka', pincode: '560038', address: 'Indiranagar, Bangalore 560038', gst_number: '29AABCS1234F1Z7', business_id: ssIns ? ssIns.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Amit Deshmukh', email: 'amit.d@example.com', phone: '9876543213', city: 'Pune', state: 'Maharashtra', pincode: '411005', address: 'FC Road, Shivaji Nagar, Pune 411005', gst_number: '27AABCA4567G1Z9', business_id: chintamani ? chintamani.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Sneha Patil', email: 'sneha.p@example.com', phone: '9876543214', city: 'Nashik', state: 'Maharashtra', pincode: '422005', address: 'Indira Nagar, Nashik 422005', gst_number: '27AABCS8901H1Z3', business_id: omEnt ? omEnt.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Vikram Mehta', email: 'vikram.mehta@gmail.com', phone: '9811223344', city: 'Delhi', state: 'Delhi', pincode: '110001', address: 'Connaught Place, New Delhi 110001', gst_number: '07AABCM6789K1Z0', business_id: madhuban ? madhuban.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Sunil Shinde', email: 'sunil.shinde@gmail.com', phone: '9822554433', city: 'Pune', state: 'Maharashtra', pincode: '411026', address: 'Bhosari MIDC, Pune 411026', gst_number: '27AABCS0123L1Z4', business_id: shriram ? shriram.id : null, role: 'business_owner', status: 'active' },
+        { name: 'Ramesh Gupta', email: 'ramesh.gupta@pharma.in', phone: '9844556677', city: 'Aurangabad', state: 'Maharashtra', pincode: '431005', address: 'Waluj MIDC, Aurangabad 431005', gst_number: '27AABCG3456M1Z8', business_id: null, role: 'client', status: 'active' },
+        { name: 'Kavita Joshi', email: 'kavita.j@accounting.com', phone: '9866778899', city: 'Pune', state: 'Maharashtra', pincode: '411030', address: 'Sadashiv Peth, Pune 411030', gst_number: '27AABCJ7890N1Z2', business_id: null, role: 'client', status: 'active' }
+      ];
+
+      for (const u of sampleUsers) {
+        const res = await dbRun(`
+          INSERT INTO users (name, email, phone, city, state, pincode, address, gst_number, business_id, role, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [u.name, u.email, u.phone, u.city, u.state, u.pincode, u.address, u.gst_number, u.business_id, u.role, u.status]);
+
+        if (u.business_id) {
+          await dbRun('UPDATE businesses SET owner_id = ? WHERE id = ?', [res.lastID, u.business_id]);
+        }
+      }
+      console.log(`Seeded ${sampleUsers.length} sample users linked with businesses into users table.`);
+
+    // 5. Seed sample Leads / Inquiries
+    await dbRun('DELETE FROM leads');
+    const kloud = await dbGet('SELECT id FROM businesses WHERE slug = ?', ['kloudbox']);
+
+    await dbRun(`
+      INSERT INTO leads (business_id, name, email, phone, message, service_requested, status)
+      VALUES 
+        (?, 'Sunil Shinde', 'sunil.shinde@gmail.com', '+919822554433', 'Need quote for 2000 LPH RO water plant for our food processing unit in Bhosari MIDC.', 'Industrial Water Treatment', 'new'),
+        (?, 'Mahesh Jagtap', 'mahesh.jagtap@outlook.com', '+919921445566', 'My Dell XPS 15 laptop has screen flickering and battery drain issue in Hadapsar.', 'Chip-Level Laptop Repair', 'contacted'),
+        (?, 'Kavita Joshi', 'kavita.j@accounting.com', '+919866778899', 'Require Tally customization and accounting software integration for GST billing.', 'ERP & Cloud Accounting', 'new'),
+        (?, 'Rahul Kumar Patil', 'rahul@gmail.com', '+919876543210', 'Looking for annual maintenance contract AMC renewal for industrial RO filtration plant.', 'Annual Maintenance Contracts (AMC)', 'contacted'),
+        (NULL, 'Rohan Verma', 'rohan.v@gmail.com', '+919876112233', 'I want to build a profile website for my new Dental Clinic on SCode.', 'Website Setup', 'new')
+    `, [cws ? cws.id : null, glory ? glory.id : null, kloud ? kloud.id : null, cws ? cws.id : null]);
+    console.log('Seeded sample inquiries / leads');
 
     console.log('Database seeding finished successfully with SCode brand!');
   } catch (error) {

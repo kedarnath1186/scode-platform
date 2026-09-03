@@ -10,6 +10,7 @@ const businessRoutes = require('./src/routes/businessRoutes');
 const leadRoutes = require('./src/routes/leadRoutes');
 const statsRoutes = require('./src/routes/statsRoutes');
 const settingRoutes = require('./src/routes/settingRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.use('/api/businesses', businessRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 2. Serve React Static Build (from client/dist)
 const clientDistPath = path.join(__dirname, 'client', 'dist');

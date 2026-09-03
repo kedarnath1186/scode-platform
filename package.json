@@ -8,7 +8,8 @@
     "seed": "node src/db/seed.js",
     "build": "cd client && npm run build",
     "client:dev": "cd client && npm run dev",
-    "server:dev": "node --watch server.js"
+    "server:dev": "node --watch server.js",
+    "test:search": "node scripts/test_search_eval.js"
   },
   "keywords": [
     "react",

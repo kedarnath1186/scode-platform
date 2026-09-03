@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { dbRun, dbGet, dbAll } = require('../db/database');
 const { verifyAdmin } = require('../middleware/auth');
+const userSearchService = require('../services/userSearchService');
 
 // POST /api/leads - Submit a lead/inquiry (Public)
 router.post('/', async (req, res) => {
@@ -19,6 +20,7 @@ router.post('/', async (req, res) => {
 
     const newLead = await dbGet('SELECT * FROM leads WHERE id = ?', [result.lastID]);
 
+    userSearchService.invalidateCache();
     res.status(201).json({
       success: true,
       message: 'Thank you! Your inquiry has been received. We will contact you shortly.',
@@ -83,6 +85,7 @@ router.patch('/:id', verifyAdmin, async (req, res) => {
     await dbRun('UPDATE leads SET status = ? WHERE id = ?', [status, id]);
     const updated = await dbGet('SELECT * FROM leads WHERE id = ?', [id]);
 
+    userSearchService.invalidateCache();
     res.json({ success: true, message: 'Lead status updated', data: updated });
   } catch (error) {
     console.error('Error updating lead status:', error);
@@ -95,6 +98,7 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     await dbRun('DELETE FROM leads WHERE id = ?', [id]);
+    userSearchService.invalidateCache();
     res.json({ success: true, message: 'Lead deleted successfully' });
   } catch (error) {
     console.error('Error deleting lead:', error);

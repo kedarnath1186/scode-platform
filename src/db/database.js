@@ -131,11 +131,67 @@ const initDB = async () => {
   `);
 
   await dbRun(`
-    CREATE TABLE IF NOT EXISTS platform_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT,
+      city TEXT,
+      state TEXT DEFAULT 'Maharashtra',
+      pincode TEXT,
+      address TEXT,
+      gst_number TEXT,
+      business_id INTEGER,
+      role TEXT DEFAULT 'user', -- 'user', 'business_owner', 'client'
+      status TEXT DEFAULT 'active', -- 'active', 'inactive', 'pending'
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (business_id) REFERENCES businesses (id) ON DELETE SET NULL
     )
   `);
+
+  // Safe migrations for newly added columns if table already existed
+  const addColumnIfNotExists = async (table, column, type) => {
+    try {
+      await dbRun(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    } catch (e) {
+      // Column already exists or table busy, ignore
+    }
+  };
+
+  await addColumnIfNotExists('users', 'state', 'TEXT DEFAULT "Maharashtra"');
+  await addColumnIfNotExists('users', 'pincode', 'TEXT');
+  await addColumnIfNotExists('users', 'gst_number', 'TEXT');
+  await addColumnIfNotExists('users', 'business_id', 'INTEGER');
+
+  await addColumnIfNotExists('businesses', 'owner_id', 'INTEGER');
+  await addColumnIfNotExists('businesses', 'city', 'TEXT');
+  await addColumnIfNotExists('businesses', 'state', 'TEXT DEFAULT "Maharashtra"');
+  await addColumnIfNotExists('businesses', 'pincode', 'TEXT');
+  await addColumnIfNotExists('businesses', 'gst_number', 'TEXT');
+
+  // Database Indexes for Fast Multi-Table Search & Joins
+  const createIndexIfNotExists = async (indexName, table, columns) => {
+    try {
+      await dbRun(`CREATE INDEX IF NOT EXISTS ${indexName} ON ${table}(${columns})`);
+    } catch (e) {
+      // Ignore if index creation failed
+    }
+  };
+
+  await createIndexIfNotExists('idx_users_name', 'users', 'name');
+  await createIndexIfNotExists('idx_users_email', 'users', 'email');
+  await createIndexIfNotExists('idx_users_phone', 'users', 'phone');
+  await createIndexIfNotExists('idx_users_city', 'users', 'city');
+  await createIndexIfNotExists('idx_users_business_id', 'users', 'business_id');
+
+  await createIndexIfNotExists('idx_businesses_name', 'businesses', 'name');
+  await createIndexIfNotExists('idx_businesses_category', 'businesses', 'category');
+  await createIndexIfNotExists('idx_businesses_city', 'businesses', 'city');
+  await createIndexIfNotExists('idx_businesses_owner_id', 'businesses', 'owner_id');
+
+  await createIndexIfNotExists('idx_leads_business_id', 'leads', 'business_id');
+  await createIndexIfNotExists('idx_leads_email', 'leads', 'email');
+  await createIndexIfNotExists('idx_leads_phone', 'leads', 'phone');
 
   console.log('Database tables verified / initialized successfully.');
 };

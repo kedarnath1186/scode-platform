@@ -17,8 +17,10 @@ import {
   Loader2,
   X,
   PlusCircle,
-  Globe
+  Globe,
+  Bot
 } from 'lucide-react';
+import AdminChatbot from '../components/AdminChatbot';
 
 const AdminDashboardPage = () => {
   const [token, setToken] = useState(localStorage.getItem('scode_admin_token'));
@@ -325,6 +327,7 @@ const AdminDashboardPage = () => {
         <ul style={{ padding: '20px 12px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flexGrow: 1 }}>
           {[
             { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+            { id: 'chatbot', label: 'AI User Search', icon: <Bot size={18} /> },
             { id: 'businesses', label: 'Businesses', icon: <Building size={18} /> },
             { id: 'leads', label: 'Inquiries / Leads', icon: <MessageSquare size={18} /> },
             { id: 'settings', label: 'Platform CMS', icon: <Settings size={18} /> }
@@ -931,7 +934,109 @@ const AdminDashboardPage = () => {
           </div>
         )}
 
+        {/* VIEW 5: AI USER SEARCH CHATBOT */}
+        {activeTab === 'chatbot' && (
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Bot size={32} color="#60a5fa" />
+                <span>AI User Search Assistant</span>
+              </h1>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '4px' }}>
+                Search and retrieve any user record across the system using natural language queries.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '24px' }}>
+              {/* Quick Query Guide Card */}
+              <div style={{ background: '#131c2e', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '12px', padding: '24px' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '14px', color: '#60a5fa' }}>
+                  Natural Language Query Examples
+                </h3>
+                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '20px' }}>
+                  The backend parser safely translates natural language into secure, parameterized database searches:
+                </p>
+
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {[
+                    { label: 'Search by Name', example: 'Find user Rahul', desc: 'Finds all matching users with name "Rahul"' },
+                    { label: 'Search by Full Name', example: 'Search for Kedarnath', desc: 'Matches exact or partial name "Kedarnath"' },
+                    { label: 'Search by Email', example: 'Find the user with email rahul@gmail.com', desc: 'Extracts email address parameter' },
+                    { label: 'Search by City', example: 'Show users from Pune', desc: 'Filters users living or based in Pune' },
+                    { label: 'Search by Phone', example: 'Find user whose phone number is 9876543210', desc: 'Matches 10-digit mobile number' },
+                    { label: 'Search by User ID', example: 'Find user with ID 1', desc: 'Direct lookup by exact user ID' },
+                    { label: 'List All Users', example: 'Show all users', desc: 'Lists up to 50 users in database' }
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase' }}>
+                          {item.label}
+                        </span>
+                        <div style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: '0.9rem', marginTop: '2px' }}>
+                          "{item.example}"
+                        </div>
+                        <small style={{ color: '#64748b', fontSize: '0.78rem' }}>{item.desc}</small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chatbot Highlights & Security Card */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ background: '#131c2e', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '24px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px', color: '#34d399' }}>
+                    🔒 Security & Architecture
+                  </h3>
+                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    <li style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <span style={{ color: '#34d399' }}>✓</span>
+                      <span><strong>Controlled Execution:</strong> No arbitrary SQL strings are executed by the AI or user.</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <span style={{ color: '#34d399' }}>✓</span>
+                      <span><strong>Parameterized SQL:</strong> All searches use safe parameter bindings.</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <span style={{ color: '#34d399' }}>✓</span>
+                      <span><strong>Admin-Only Protected:</strong> Only authenticated admins with valid JWT token can query users.</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <span style={{ color: '#34d399' }}>✓</span>
+                      <span><strong>Zero Sensitive Data Leaks:</strong> Passwords, hashes, and auth tokens are stripped.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+                  <Bot size={40} color="#60a5fa" style={{ margin: '0 auto 12px' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>
+                    Floating Assistant is Ready
+                  </h4>
+                  <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Use the floating chat widget at the bottom right corner anytime while browsing any section of the admin panel.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
+      {/* Floating AI Chatbot Assistant */}
+      <AdminChatbot token={token} />
 
       {/* ========== CREATE / EDIT BUSINESS MODAL ========== */}
       {modalOpen && (

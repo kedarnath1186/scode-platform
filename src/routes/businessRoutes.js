@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { dbRun, dbGet, dbAll } = require('../db/database');
 const { verifyAdmin } = require('../middleware/auth');
+const userSearchService = require('../services/userSearchService');
 
 // Utility to generate a URL-friendly slug
 const generateSlug = (text) => {
@@ -158,6 +159,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     }
 
     const created = await dbGet('SELECT * FROM businesses WHERE id = ?', [businessId]);
+    userSearchService.invalidateCache();
     res.status(201).json({ success: true, message: 'Business created successfully', data: created });
   } catch (error) {
     console.error('Error creating business:', error);
@@ -282,6 +284,7 @@ router.put('/:id', verifyAdmin, async (req, res) => {
     }
 
     const updated = await dbGet('SELECT * FROM businesses WHERE id = ?', [id]);
+    userSearchService.invalidateCache();
     res.json({ success: true, message: 'Business updated successfully', data: updated });
   } catch (error) {
     console.error('Error updating business:', error);
@@ -298,6 +301,7 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
     await dbRun('DELETE FROM gallery_items WHERE business_id = ?', [id]);
     await dbRun('DELETE FROM businesses WHERE id = ?', [id]);
 
+    userSearchService.invalidateCache();
     res.json({ success: true, message: 'Business deleted successfully' });
   } catch (error) {
     console.error('Error deleting business:', error);
