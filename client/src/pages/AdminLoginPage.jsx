@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, User, Key, ArrowLeft, Loader2 } from 'lucide-react';
+import ScodeLogo from '../components/ScodeLogo';
 
 const AdminLoginPage = () => {
   const [username, setUsername] = useState('admin');
@@ -62,20 +63,7 @@ const AdminLoginPage = () => {
         zIndex: 1
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '50px',
-            height: '50px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            marginBottom: '16px',
-            boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
-          }}>
-            <ShieldCheck size={28} />
-          </div>
+          <ScodeLogo size="md" style={{ marginBottom: '16px' }} />
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>SCode Admin Portal</h1>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '6px' }}>
             React + Node.js Single Database CMS

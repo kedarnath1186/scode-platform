@@ -312,9 +312,9 @@ class UserSearchService {
       return this._cache.docs;
     }
 
-    const users = await dbAll('SELECT * FROM users ORDER BY id ASC');
-    const businesses = await dbAll('SELECT * FROM businesses ORDER BY id ASC');
-    const leads = await dbAll('SELECT * FROM leads ORDER BY id DESC');
+    const users = await dbAll('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY id ASC');
+    const businesses = await dbAll('SELECT * FROM businesses WHERE deleted_at IS NULL ORDER BY id ASC');
+    const leads = await dbAll('SELECT * FROM leads WHERE deleted_at IS NULL ORDER BY id DESC');
     const services = await dbAll('SELECT * FROM services ORDER BY business_id, display_order');
 
     const businessMap = new Map();

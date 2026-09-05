@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { dbRun, dbAll } = require('../db/database');
 const { verifyAdmin } = require('../middleware/auth');
+const { logAudit } = require('../services/auditService');
 
 // GET /api/settings - Get all platform settings (Public)
 router.get('/', async (req, res) => {
@@ -28,6 +29,15 @@ router.put('/', verifyAdmin, async (req, res) => {
         [key, String(value)]
       );
     }
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'UPDATE',
+      entity_type: 'setting',
+      entity_id: null,
+      details: { updated_keys: Object.keys(settings) }
+    });
+
     res.json({ success: true, message: 'Settings updated successfully' });
   } catch (error) {
     console.error('Error updating settings:', error);

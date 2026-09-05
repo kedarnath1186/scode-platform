@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const { dbRun, dbGet, dbAll } = require('../db/database');
-const { verifyAdmin } = require('../middleware/auth');
+const { verifyAdmin, requireSuperAdmin, JWT_SECRET } = require('../middleware/auth');
 const userSearchService = require('../services/userSearchService');
+const { logAudit } = require('../services/auditService');
 
 // Utility to generate a URL-friendly slug
 const generateSlug = (text) => {
@@ -14,11 +16,22 @@ const generateSlug = (text) => {
     .replace(/^-+|-+$/g, '');
 };
 
-// GET /api/businesses - List businesses
+// GET /api/businesses/admin/trash - View soft-deleted businesses (Admin only)
+router.get('/admin/trash', verifyAdmin, async (req, res) => {
+  try {
+    const trash = await dbAll('SELECT * FROM businesses WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC');
+    res.json({ success: true, count: trash.length, data: trash });
+  } catch (error) {
+    console.error('Error fetching trash businesses:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch trash items' });
+  }
+});
+
+// GET /api/businesses - List active businesses (Excludes soft-deleted)
 router.get('/', async (req, res) => {
   try {
     const { status, category, search, featured } = req.query;
-    let sql = 'SELECT * FROM businesses WHERE 1=1';
+    let sql = 'SELECT * FROM businesses WHERE (deleted_at IS NULL)';
     const params = [];
 
     if (status && status !== 'all') {
@@ -73,6 +86,44 @@ router.get('/:slugOrId', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Business not found' });
     }
 
+    // Check Admin Authentication for Preview Mode
+    let isAdmin = false;
+    let token = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.admin_token) {
+      token = req.cookies.admin_token;
+    } else if (req.query.admin_token) {
+      token = req.query.admin_token;
+    }
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded) isAdmin = true;
+      } catch (e) {
+        isAdmin = false;
+      }
+    }
+
+    // Feature 1b: Public route enforcement.
+    // If not live, only render full content for verified admin in preview mode.
+    if (business.status !== 'live' && !isAdmin) {
+      return res.json({
+        success: true,
+        is_restricted: true,
+        data: {
+          id: business.id,
+          name: business.name,
+          slug: business.slug,
+          status: business.status,
+          category: business.category,
+          tagline: business.tagline,
+          theme_color: business.theme_color
+        }
+      });
+    }
+
     // Fetch related services, testimonials, gallery
     const services = await dbAll('SELECT * FROM services WHERE business_id = ? ORDER BY display_order ASC', [business.id]);
     const testimonials = await dbAll('SELECT * FROM testimonials WHERE business_id = ? ORDER BY id DESC', [business.id]);
@@ -82,6 +133,7 @@ router.get('/:slugOrId', async (req, res) => {
       success: true,
       data: {
         ...business,
+        is_preview: business.status !== 'live' && isAdmin,
         services,
         testimonials,
         gallery
@@ -159,6 +211,15 @@ router.post('/', verifyAdmin, async (req, res) => {
     }
 
     const created = await dbGet('SELECT * FROM businesses WHERE id = ?', [businessId]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'CREATE',
+      entity_type: 'business',
+      entity_id: businessId,
+      details: { name: created.name, slug: created.slug, category: created.category }
+    });
+
     userSearchService.invalidateCache();
     res.status(201).json({ success: true, message: 'Business created successfully', data: created });
   } catch (error) {
@@ -284,6 +345,15 @@ router.put('/:id', verifyAdmin, async (req, res) => {
     }
 
     const updated = await dbGet('SELECT * FROM businesses WHERE id = ?', [id]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'UPDATE',
+      entity_type: 'business',
+      entity_id: id,
+      details: { name: updated.name, slug: updated.slug, status: updated.status }
+    });
+
     userSearchService.invalidateCache();
     res.json({ success: true, message: 'Business updated successfully', data: updated });
   } catch (error) {
@@ -292,21 +362,110 @@ router.put('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/businesses/:id - Delete business (Admin only)
+// DELETE /api/businesses/:id - Soft-delete business (Admin only)
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    await dbRun('DELETE FROM services WHERE business_id = ?', [id]);
-    await dbRun('DELETE FROM testimonials WHERE business_id = ?', [id]);
-    await dbRun('DELETE FROM gallery_items WHERE business_id = ?', [id]);
-    await dbRun('DELETE FROM businesses WHERE id = ?', [id]);
+    const business = await dbGet('SELECT * FROM businesses WHERE id = ?', [id]);
+    if (!business) {
+      return res.status(404).json({ success: false, message: 'Business not found' });
+    }
+
+    await dbRun(`
+      UPDATE businesses SET
+        deleted_at = CURRENT_TIMESTAMP,
+        status = 'suspended',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [id]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'SOFT_DELETE',
+      entity_type: 'business',
+      entity_id: id,
+      details: { name: business.name, slug: business.slug, previous_status: business.status }
+    });
 
     userSearchService.invalidateCache();
-    res.json({ success: true, message: 'Business deleted successfully' });
+    res.json({ success: true, message: `Business "${business.name}" moved to trash (soft-deleted)` });
   } catch (error) {
-    console.error('Error deleting business:', error);
+    console.error('Error soft-deleting business:', error);
     res.status(500).json({ success: false, message: 'Failed to delete business' });
   }
 });
+
+// Restore business handler
+const handleRestoreBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const business = await dbGet('SELECT * FROM businesses WHERE id = ? AND deleted_at IS NOT NULL', [id]);
+    if (!business) {
+      return res.status(404).json({ success: false, message: 'Soft-deleted business not found in trash' });
+    }
+
+    await dbRun(`
+      UPDATE businesses SET
+        deleted_at = NULL,
+        status = 'upcoming',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [id]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'RESTORE',
+      entity_type: 'business',
+      entity_id: id,
+      details: { name: business.name, slug: business.slug }
+    });
+
+    userSearchService.invalidateCache();
+    const restored = await dbGet('SELECT * FROM businesses WHERE id = ?', [id]);
+    res.json({ success: true, message: `Business "${business.name}" restored from trash`, data: restored });
+  } catch (error) {
+    console.error('Error restoring business:', error);
+    res.status(500).json({ success: false, message: 'Failed to restore business' });
+  }
+};
+
+// POST /api/businesses/admin/trash/:id/restore and /api/businesses/:id/restore (Admin only)
+router.post('/admin/trash/:id/restore', verifyAdmin, handleRestoreBusiness);
+router.post('/:id/restore', verifyAdmin, handleRestoreBusiness);
+
+// Permanent hard-delete handler (Superadmin only)
+const handlePermanentDeleteBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const business = await dbGet('SELECT * FROM businesses WHERE id = ?', [id]);
+    if (!business) {
+      return res.status(404).json({ success: false, message: 'Business not found' });
+    }
+
+    await dbRun('DELETE FROM services WHERE business_id = ?', [id]);
+    await dbRun('DELETE FROM testimonials WHERE business_id = ?', [id]);
+    await dbRun('DELETE FROM gallery_items WHERE business_id = ?', [id]);
+    await dbRun('DELETE FROM approval_log WHERE business_id = ?', [id]);
+    await dbRun('DELETE FROM businesses WHERE id = ?', [id]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'HARD_DELETE',
+      entity_type: 'business',
+      entity_id: id,
+      details: { name: business.name, slug: business.slug }
+    });
+
+    userSearchService.invalidateCache();
+    res.json({ success: true, message: `Business "${business.name}" permanently deleted from database` });
+  } catch (error) {
+    console.error('Error permanently deleting business:', error);
+    res.status(500).json({ success: false, message: 'Failed to permanently delete business' });
+  }
+};
+
+// DELETE /api/businesses/admin/trash/:id and /api/businesses/:id/permanent (Superadmin only)
+router.delete('/admin/trash/:id', verifyAdmin, requireSuperAdmin, handlePermanentDeleteBusiness);
+router.delete('/:id/permanent', verifyAdmin, requireSuperAdmin, handlePermanentDeleteBusiness);
 
 module.exports = router;

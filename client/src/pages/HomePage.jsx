@@ -16,6 +16,7 @@ import {
   Loader2,
   Sliders
 } from 'lucide-react';
+import ScodeLogo from '../components/ScodeLogo';
 
 const translations = {
   en: {
@@ -215,22 +216,8 @@ const HomePage = () => {
         padding: '16px 0'
       }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', color: '#fff' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 20px var(--primary-glow)'
-            }}>
-              <Globe size={22} color="#fff" />
-            </div>
-            <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-              S<span className="text-gradient">Code</span>
-            </span>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-main)', fontWeight: 700, fontSize: '1.25rem' }}>
+            <ScodeLogo size="sm" />
             <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(59, 130, 246, 0.2)', borderRadius: '4px', color: '#60a5fa' }}>
               PORTAL
             </span>
@@ -243,10 +230,14 @@ const HomePage = () => {
               <a href="#businesses" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, fontSize: '0.95rem' }}>{t('nav-businesses')}</a>
               <a href="#how" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, fontSize: '0.95rem' }}>{t('nav-how')}</a>
               <a href="#portfolio" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, fontSize: '0.95rem' }}>{t('nav-portfolio')}</a>
-              <a href="#contact" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, fontSize: '0.95rem' }}>{t('nav-contact')}</a>
+              <Link to="/host-your-business" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600, fontSize: '0.95rem' }}>Plans &amp; Hosting</Link>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <Link to="/host-your-business" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                <Rocket size={15} /> Host Business
+              </Link>
+
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
@@ -306,9 +297,9 @@ const HomePage = () => {
               </p>
 
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
-                <a href="#contact" className="btn btn-primary">
+                <Link to="/host-your-business" className="btn btn-primary">
                   <Rocket size={18} /> {t('hero-cta-primary')}
-                </a>
+                </Link>
                 <a href="#portfolio" className="btn btn-secondary">
                   <Grid size={18} /> {t('hero-cta-secondary')}
                 </a>
@@ -965,9 +956,8 @@ const HomePage = () => {
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr', gap: '50px', marginBottom: '50px' }}>
             <div>
-              <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: '#fff' }}>
-                <Globe size={26} color="#3b82f6" />
-                <span style={{ fontSize: '1.3rem', fontWeight: 800 }}>S<span className="text-gradient">Code</span></span>
+              <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+                <ScodeLogo size="md" />
               </Link>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '16px', maxWidth: '320px' }}>
                 Helping local businesses establish their online presence quickly and affordably. From your first online portfolio to complete digital growth.

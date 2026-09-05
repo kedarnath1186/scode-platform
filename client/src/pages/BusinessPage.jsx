@@ -10,8 +10,13 @@ import {
   Send,
   Loader2,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  QrCode,
+  AlertTriangle,
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
+import ScodeLogo from '../components/ScodeLogo';
 
 const BusinessPage = () => {
   const { slug } = useParams();
@@ -38,7 +43,10 @@ const BusinessPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/businesses/${slug}`);
+      const adminToken = localStorage.getItem('scode_admin_token');
+      const headers = adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {};
+
+      const res = await fetch(`/api/businesses/${slug}`, { headers });
       const json = await res.json();
 
       if (!json.success || !json.data) {
@@ -113,12 +121,88 @@ const BusinessPage = () => {
         <div style={{ maxWidth: '480px', background: '#0f172a', padding: '40px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
           <h2 style={{ marginBottom: '12px' }}>Profile Not Found</h2>
           <p style={{ color: '#94a3b8', marginBottom: '24px' }}>{error}</p>
-          <Link to="/" className="btn btn-primary">
+          <Link to="/" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#3b82f6', color: '#fff', textDecoration: 'none', borderRadius: '8px' }}>
             <ArrowLeft size={18} /> Return to SCode Directory
           </Link>
         </div>
       </div>
     );
+  }
+
+  // Handle Non-Live Status for Regular Public Visitors (Not Admin Preview)
+  if (!business.is_preview && business.status !== 'live') {
+    // 1. Pending Review State
+    if (business.status === 'pending_review' || business.status === 'upcoming') {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020617', color: '#fff', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ maxWidth: '540px', background: '#0f172a', padding: '44px 36px', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.3)', textAlign: 'center', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <Sparkles size={32} />
+            </div>
+            <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '999px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px' }}>
+              Setup in Progress
+            </div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '12px' }}>{business.name}</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '28px' }}>
+              This official business website is currently undergoing verification and final setup. It will be publicly active shortly.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#3b82f6', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
+                <ArrowLeft size={16} /> Explore SCode Directory
+              </Link>
+              <Link to="/host-your-business" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(255, 255, 255, 0.08)', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 500, fontSize: '0.9rem' }}>
+                Host Your Business
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Suspended / Expired State
+    if (business.status === 'suspended') {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020617', color: '#fff', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ maxWidth: '520px', background: '#0f172a', padding: '40px', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.3)', textAlign: 'center', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <AlertTriangle size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '10px' }}>Website Temporarily Unavailable</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '20px' }}>
+              The hosting subscription for <strong>{business.name}</strong> has expired. If you are the business owner, please contact SCode or renew your plan to reactivate this website.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link to="/host-your-business" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#3b82f6', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
+                <Sparkles size={16} /> Renew Subscription on SCode
+              </Link>
+              <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'rgba(255, 255, 255, 0.08)', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 500, fontSize: '0.9rem' }}>
+                <ArrowLeft size={16} /> SCode Directory
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 3. Rejected State
+    if (business.status === 'rejected') {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020617', color: '#fff', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ maxWidth: '520px', background: '#0f172a', padding: '40px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.3)', textAlign: 'center', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <AlertTriangle size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '10px' }}>Website Under Maintenance</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '20px' }}>
+              This business website is currently not published. Please check back later or return to the main platform.
+            </p>
+            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#3b82f6', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
+              <ArrowLeft size={16} /> Return to SCode Directory
+            </Link>
+          </div>
+        </div>
+      );
+    }
   }
 
   const themeColor = business.theme_color || '#0ea5e9';
@@ -127,6 +211,49 @@ const BusinessPage = () => {
   return (
     <div style={{ background: '#020617', color: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       
+      {/* ========== ADMIN PREVIEW MODE BANNER ========== */}
+      {business.is_preview && (
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 9999,
+          background: 'linear-gradient(90deg, #854d0e, #a16207)',
+          color: '#fef08a',
+          padding: '10px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ background: '#fef08a', color: '#713f12', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+              Admin Preview Mode
+            </span>
+            <span>
+              Status: <strong style={{ color: '#fff', textTransform: 'uppercase' }}>{business.status}</strong> — You are viewing an unapproved quality control preview (hidden from public visitors).
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Link
+              to="/admin"
+              style={{
+                color: '#fff',
+                background: 'rgba(0, 0, 0, 0.35)',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontSize: '0.8rem'
+              }}
+            >
+              ← Back to Admin Approvals Queue
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ========== HEADER ========== */}
       <header style={{
         position: 'sticky',
@@ -658,12 +785,57 @@ const BusinessPage = () => {
         </div>
       </section>
 
+      {/* ========== QR GROWTH LOOP BANNER ========== */}
+      <section style={{ background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9))', borderTop: '1px solid rgba(59, 130, 246, 0.2)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '40px 0' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '30px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ background: '#fff', padding: '6px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', flexShrink: 0 }}>
+              <img
+                src={`/api/qr?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/host-your-business' : 'https://scode.in/host-your-business')}&size=120&margin=1`}
+                alt="Scan to host your business on SCode"
+                style={{ width: '80px', height: '80px', display: 'block' }}
+              />
+            </div>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                <ScodeLogo size="sm" /> Powered by SCode Platform
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                Want a website like this for your business?
+              </h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: '4px 0 0' }}>
+                Scan the QR code or click below to launch your verified digital profile in 24 hours.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/host-your-business"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textDecoration: 'none',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.35)'
+            }}
+          >
+            <QrCode size={18} /> Get Your Website →
+          </Link>
+        </div>
+      </section>
+
       {/* ========== FOOTER ========== */}
       <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: '40px 0', textAlign: 'center' }}>
         <div className="container">
           <p>© 2026 {business.name}. All rights reserved.</p>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '8px' }}>
-            ⚡ Business Profile Website Managed on <Link to="/" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>SCode Platform</Link> · Single Database Powered
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <ScodeLogo size="sm" /> Business Profile Website Managed on <Link to="/" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>SCode Platform</Link> · Single Database Powered
           </p>
         </div>
       </footer>

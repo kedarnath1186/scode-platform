@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { dbRun, dbGet, dbAll, initDB } = require('./database');
 
@@ -8,12 +9,23 @@ const seedData = async () => {
     // 1. Seed Admin User
     const existingAdmin = await dbGet('SELECT * FROM admin_users WHERE username = ?', ['admin']);
     if (!existingAdmin) {
-      const passwordHash = await bcrypt.hash('admin123', 10);
+      const generatedPassword = crypto.randomBytes(12).toString('hex');
+      const passwordHash = await bcrypt.hash(generatedPassword, 10);
       await dbRun(
         'INSERT INTO admin_users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
         ['admin', 'admin@scode.in', passwordHash, 'superadmin']
       );
-      console.log('Seeded default admin user: admin / admin123');
+      console.warn(`
+=============================================================================
+⚠️  INITIAL ADMIN ACCOUNT CREATED — ACTION REQUIRED
+-----------------------------------------------------------------------------
+Username: admin
+Generated Password: ${generatedPassword}
+
+⚠️  WARNING: Change this password immediately upon first login!
+⚠️  Never commit, log, or share these credentials.
+=============================================================================
+      `);
     }
 
     // 2. Seed Platform Settings
@@ -502,6 +514,80 @@ const seedData = async () => {
         (NULL, 'Rohan Verma', 'rohan.v@gmail.com', '+919876112233', 'I want to build a profile website for my new Dental Clinic on SCode.', 'Website Setup', 'new')
     `, [cws ? cws.id : null, glory ? glory.id : null, kloud ? kloud.id : null, cws ? cws.id : null]);
     console.log('Seeded sample inquiries / leads');
+
+    // 6. Seed Hosting Plans
+    const plans = [
+      {
+        name: 'Starter Website',
+        slug: 'starter',
+        price: 299900, // ₹2,999 / year
+        duration_months: 12,
+        max_services: 5,
+        max_gallery_images: 4,
+        is_featured_included: 0,
+        description: 'Ideal for local stores, repair shops, and single-service businesses needing a verified digital presence.',
+        is_active: 1
+      },
+      {
+        name: 'Growth Business',
+        slug: 'growth',
+        price: 599900, // ₹5,999 / year
+        duration_months: 12,
+        max_services: 12,
+        max_gallery_images: 12,
+        is_featured_included: 1,
+        description: 'Best for established agencies, consultancies, and clinics wanting high search visibility and lead capture.',
+        is_active: 1
+      },
+      {
+        name: 'Enterprise / Custom',
+        slug: 'enterprise',
+        price: 999900, // ₹9,999 / year
+        duration_months: 12,
+        max_services: 30,
+        max_gallery_images: 30,
+        is_featured_included: 1,
+        description: 'Comprehensive package with dedicated CRM integration, priority support, and multi-location capability.',
+        is_active: 1
+      }
+    ];
+
+    for (const p of plans) {
+      const existingPlan = await dbGet('SELECT id FROM plans WHERE slug = ?', [p.slug]);
+      if (!existingPlan) {
+        await dbRun(`
+          INSERT INTO plans (name, slug, price, duration_months, max_services, max_gallery_images, is_featured_included, description, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [p.name, p.slug, p.price, p.duration_months, p.max_services, p.max_gallery_images, p.is_featured_included, p.description, p.is_active]);
+      }
+    }
+    console.log('Seeded subscription hosting plans');
+
+    // 7. Link default plans and sample payments
+    const starterPlan = await dbGet('SELECT id, price FROM plans WHERE slug = ?', ['starter']);
+    const growthPlan = await dbGet('SELECT id, price FROM plans WHERE slug = ?', ['growth']);
+    if (starterPlan && cws) {
+      await dbRun('UPDATE businesses SET current_plan_id = ? WHERE id = ?', [growthPlan ? growthPlan.id : starterPlan.id, cws.id]);
+    }
+    if (starterPlan && glory) {
+      await dbRun('UPDATE businesses SET current_plan_id = ? WHERE id = ?', [starterPlan.id, glory.id]);
+    }
+
+    const existingPayments = await dbAll('SELECT id FROM payments');
+    if (existingPayments.length === 0 && growthPlan && cws) {
+      await dbRun(`
+        INSERT INTO payments (business_id, plan_id, razorpay_order_id, razorpay_payment_id, amount, currency, status, payment_method, notes, paid_at)
+        VALUES (?, ?, 'order_seed_001', 'pay_seed_001', ?, 'INR', 'paid', 'razorpay', 'Annual Renewal for Clean Water Solutions', CURRENT_TIMESTAMP)
+      `, [cws.id, growthPlan.id, growthPlan.price]);
+
+      if (starterPlan && glory) {
+        await dbRun(`
+          INSERT INTO payments (business_id, plan_id, razorpay_order_id, razorpay_payment_id, amount, currency, status, payment_method, notes, paid_at)
+          VALUES (?, ?, 'order_seed_002', 'pay_seed_002', ?, 'INR', 'paid', 'offline', 'Cash / Direct Bank Transfer', CURRENT_TIMESTAMP)
+        `, [glory.id, starterPlan.id, starterPlan.price]);
+      }
+      console.log('Seeded sample payment transactions');
+    }
 
     console.log('Database seeding finished successfully with SCode brand!');
   } catch (error) {

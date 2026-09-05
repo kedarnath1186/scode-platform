@@ -3,6 +3,7 @@ const router = express.Router();
 const { dbRun, dbGet, dbAll } = require('../db/database');
 const { verifyAdmin } = require('../middleware/auth');
 const userSearchService = require('../services/userSearchService');
+const { logAudit } = require('../services/auditService');
 
 // POST /api/leads - Submit a lead/inquiry (Public)
 router.post('/', async (req, res) => {
@@ -32,7 +33,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/leads - Get all leads (Admin only)
+// GET /api/leads - Get all leads (Admin only, excludes soft-deleted)
 router.get('/', verifyAdmin, async (req, res) => {
   try {
     const { business_id, status } = req.query;
@@ -44,7 +45,7 @@ router.get('/', verifyAdmin, async (req, res) => {
         b.category AS business_category
       FROM leads l
       LEFT JOIN businesses b ON l.business_id = b.id
-      WHERE 1=1
+      WHERE (l.deleted_at IS NULL)
     `;
     const params = [];
 
@@ -85,6 +86,14 @@ router.patch('/:id', verifyAdmin, async (req, res) => {
     await dbRun('UPDATE leads SET status = ? WHERE id = ?', [status, id]);
     const updated = await dbGet('SELECT * FROM leads WHERE id = ?', [id]);
 
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'UPDATE',
+      entity_type: 'lead',
+      entity_id: id,
+      details: { name: updated.name, new_status: status }
+    });
+
     userSearchService.invalidateCache();
     res.json({ success: true, message: 'Lead status updated', data: updated });
   } catch (error) {
@@ -93,13 +102,27 @@ router.patch('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/leads/:id - Delete a lead (Admin only)
+// DELETE /api/leads/:id - Soft-delete a lead (Admin only)
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    await dbRun('DELETE FROM leads WHERE id = ?', [id]);
+    const lead = await dbGet('SELECT * FROM leads WHERE id = ?', [id]);
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    await dbRun('UPDATE leads SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+
+    await logAudit({
+      admin_id: req.admin?.id,
+      action: 'SOFT_DELETE',
+      entity_type: 'lead',
+      entity_id: id,
+      details: { name: lead.name, email: lead.email, phone: lead.phone }
+    });
+
     userSearchService.invalidateCache();
-    res.json({ success: true, message: 'Lead deleted successfully' });
+    res.json({ success: true, message: 'Lead moved to trash (soft-deleted)' });
   } catch (error) {
     console.error('Error deleting lead:', error);
     res.status(500).json({ success: false, message: 'Failed to delete lead' });
